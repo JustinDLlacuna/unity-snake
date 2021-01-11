@@ -14,6 +14,12 @@ A simple snake game built with Unity. It is currently built for Android, but it 
 
 Played on an LG Aristo 5.
 
+Menu
 
+![alt text](https://github.com/[username]/[reponame]/blob/[branch]/Screenshots/Start.png?raw=true)
+
+In-Game
+
+![alt text](https://github.com/[username]/[reponame]/blob/[branch]/Screenshots/Game.png?raw=true)
 
 
