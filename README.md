@@ -5,9 +5,9 @@ A simple snake game built with Unity. It is currently built for Android, but it 
 # Features
 
 - Score counter
-- Score saver/loader
 - Pause/resume game
 - Adjustable speed
+- Saved score for each speed.
 - Sound toggle
 
 # Gameplay
