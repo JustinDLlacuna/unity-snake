@@ -16,10 +16,10 @@ Played on an LG Aristo 5.
 
 Menu
 
-![alt text](https://github.com/[username]/[reponame]/blob/[branch]/Screenshots/Start.png?raw=true)
+![alt text](https://github.com/JustinDLlacuna/unity-snake/tree/main/Screenshots/Menu.png?raw=true)
 
 In-Game
 
-![alt text](https://github.com/[username]/[reponame]/blob/[branch]/Screenshots/Game.png?raw=true)
+![alt text](https://github.com/JustinDLlacuna/unity-snake/tree/main/Screenshots/Game.png?raw=true)
 
 
