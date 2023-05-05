@@ -71,12 +71,6 @@ public class MusicPlayer : MonoBehaviour
 
     public void PlayEatFruit()
     {
-        /*
-        if (audioSource.isPlaying)
-        {
-            audioSource.Stop();
-        }*/
-
         soundEffectAudioSource.PlayOneShot(beeps[Random.Range(0, beeps.Count)]);
     } 
 
@@ -100,10 +94,11 @@ public class MusicPlayer : MonoBehaviour
 
     public void StopMusic()
     {
+        playMusic = false;
+
         if (musicAudioSource == null)
             return;
 
-        playMusic = false;
         musicAudioSource.Stop();
     }
 }

@@ -3,20 +3,31 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
+    #region Managers
     private static GameManager instance;
 
+    private GridRenderer gridRenderer;
+
+    private UIManager uiManager;
+
+    private ScoreKeeper scoreKeeper;
+
+    private Settings settings;
+    #endregion
+
+    private bool playedGame;
     private bool isPaused;
     private bool isSnakeColorPrimary;
+
     private float currentTime;
     private float ticksPerSecond;
+
     private ScreenInput.Swipe previousSwipe;
+
     private Cell fruitCell;
     private Cell[,] grid;
+
     private LinkedList<Cell> snake;
-    private GridRenderer gridRenderer;
-    private UIManager uiManager;
-    private ScoreKeeper scoreKeeper;
-    private Settings settings;
 
     private void Awake()
     {
@@ -51,6 +62,8 @@ public class GameManager : MonoBehaviour
 
         scoreKeeper = ScoreKeeper.Instance;
         settings = Settings.Instance;
+
+        ticksPerSecond = settings.TicksPerSecond;
     }
 
     //Spawn fruit, draw grid, and stop game.
@@ -60,7 +73,7 @@ public class GameManager : MonoBehaviour
 
         gridRenderer = GridRenderer.Instance;
         gridRenderer.DrawGrid();
-        gridRenderer.FadeCells();
+        gridRenderer.HideCells();
 
         StopGame();
     }
@@ -103,16 +116,79 @@ public class GameManager : MonoBehaviour
     {
         if (pauseStatus)
         {
-            SaveHighScore();
-            settings.SaveSettings();
+            SaveData();
         }       
     }
 
     //Save high score and settings when app quit.
     private void OnApplicationQuit()
     {
-        SaveHighScore();
-        settings.SaveSettings();
+        SaveData();
+    }
+
+    #region Game States
+    //Loads ticks per second from settings, refreshes grid, resets current score, shows grid unfaded, and resumes game.
+    public void StartGame()
+    {
+        playedGame = true;
+
+        ticksPerSecond = settings.TicksPerSecond;
+
+        gridRenderer.ResetGrid();
+        scoreKeeper.ResetCurrentScore();
+        
+        Cell startCell = grid[GridConstants.START_X, GridConstants.START_Y];
+        snake.AddFirst(startCell);
+        startCell.State = Cell.CellState.Snake;
+
+        SpawnFruit();
+
+        RefreshGrid();       
+        gridRenderer.ShowCells();
+        uiManager.ShowGamePanel();
+
+        ResumeGame();
+
+        if(settings.UseMusic)
+            MusicPlayer.Instance.PlayMusic();
+    }
+
+    //Pauses game, updates high score of current tick, and show start panel.
+    public void StopGame()
+    {
+        PauseGame();
+        KillSnake();
+
+        if (fruitCell != null)
+            fruitCell.State = Cell.CellState.Empty;
+
+        gridRenderer.ResetGrid();
+        gridRenderer.HideCells();
+        MusicPlayer.Instance.StopMusic();
+
+        if(playedGame)
+            scoreKeeper.UpdateScores((int)ticksPerSecond);
+
+        uiManager.ShowStartPanel();
+        previousSwipe = ScreenInput.Swipe.Up;
+
+        playedGame = false;
+    }
+
+    //Shows resume button, and sets time scale to 0.
+    private void PauseGame()
+    {
+        uiManager.ShowResumeButton();
+        Time.timeScale = 0;
+        isPaused = true;
+    }
+
+    //Shows pause button, and sets time scale to 1.
+    private void ResumeGame()
+    {
+        uiManager.ShowPauseButton();
+        Time.timeScale = 1f;
+        isPaused = false;
     }
 
     public void TogglePause()
@@ -126,29 +202,9 @@ public class GameManager : MonoBehaviour
             PauseGame();
         }
     }
+    #endregion
 
-    //Loads ticks per second from settings, refreshes grid, resets current score, shows grid unfaded, and resumes game.
-    public void StartGame()
-    {
-        ticksPerSecond = settings.TicksPerSecond;
-
-        gridRenderer.ResetGrid();
-        scoreKeeper.ResetCurrentScore();
-        uiManager.ShowGamePanel();
-        gridRenderer.UnFadeCells();
-
-        Cell startCell = grid[GridConstants.START_X, GridConstants.START_Y];
-        snake.AddFirst(startCell);
-        startCell.State = Cell.CellState.Snake;
-
-        SpawnFruit();
-        RefreshGrid();
-        ResumeGame();
-
-        if(settings.UseMusic)
-            MusicPlayer.Instance.PlayMusic();
-    }
-
+    #region Movement
     //Snake can move if swipe is not None, is 1 snake, or next cell is not 2nd snake body.
     private bool CanMoveSnake(ScreenInput.Swipe swipe)
     {
@@ -208,22 +264,6 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
-    private Color GetColor(Cell.CellState state)
-    {
-        switch (state) 
-        {
-            case Cell.CellState.Snake:
-                return isSnakeColorPrimary ? settings.PrimaryColor : settings.SecondaryColor;
-
-            case Cell.CellState.Fruit:
-                return settings.FruitColor;
-
-            case Cell.CellState.Empty:
-            default:
-                return settings.GridColor;
-        }
-    }
-
     private Vector2Int GetNextCoord(Vector2Int coord, ScreenInput.Swipe swipe)
     {
         switch (swipe)
@@ -243,6 +283,23 @@ public class GameManager : MonoBehaviour
             case ScreenInput.Swipe.None:
             default:
                 return coord;
+        }
+    }
+    #endregion
+
+    private Color GetColor(Cell.CellState state)
+    {
+        switch (state) 
+        {
+            case Cell.CellState.Snake:
+                return isSnakeColorPrimary ? settings.PrimaryHue.toRGB : settings.SecondaryHue.toRGB;
+
+            case Cell.CellState.Fruit:
+                return settings.FruitHue.toRGB;
+
+            case Cell.CellState.Empty:
+            default:
+                return settings.GridHue.toRGB;
         }
     }
 
@@ -283,40 +340,7 @@ public class GameManager : MonoBehaviour
         //Spawn fruit at random cell.
         fruitCell = gridList[index];
         fruitCell.State = Cell.CellState.Fruit;
-    }
-
-    //Shows resume button, and sets time scale to 0.
-    private void PauseGame()
-    {
-        uiManager.ShowResumeButton();
-        Time.timeScale = 0;
-        isPaused = true;
-    }
-
-    //Shows pause button, and sets time scale to 1.
-    private void ResumeGame()
-    {
-        uiManager.ShowPauseButton();
-        Time.timeScale = 1f;
-        isPaused = false;
-    }
-
-    //Pauses game, updates high score of current tick, and show start panel.
-    public void StopGame()
-    {
-        PauseGame();
-        KillSnake();
-
-        if(fruitCell != null)
-            fruitCell.State = Cell.CellState.Empty;
-
-        gridRenderer.ResetGrid();
-        gridRenderer.FadeCells();
-        MusicPlayer.Instance.StopMusic();
-        scoreKeeper.UpdateHighScore((int)ticksPerSecond);
-        uiManager.ShowStartPanel();
-        previousSwipe = ScreenInput.Swipe.Up;
-    }
+    } 
 
     private void RefreshGrid()
     {
@@ -338,15 +362,14 @@ public class GameManager : MonoBehaviour
 
         //Redraws fruit.
         if(fruitCell != null)
-            gridRenderer.UpdateCell(fruitCell.X, fruitCell.Y, settings.FruitColor);
+            gridRenderer.UpdateCell(fruitCell.X, fruitCell.Y, settings.FruitHue.toRGB);
     }
 
-    //Updates high score of current tick, and saves it.
-    private void SaveHighScore()
+    private void SaveData()
     {
-        scoreKeeper.UpdateHighScore((int)ticksPerSecond);
-        scoreKeeper.SaveHighScore();
-    }  
+        scoreKeeper.SaveScores();
+        settings.SaveSettings();
+    }
 
     private class Cell
     {

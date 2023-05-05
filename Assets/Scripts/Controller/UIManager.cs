@@ -1,5 +1,4 @@
-﻿using System;
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,14 +19,18 @@ public class UIManager : MonoBehaviour
 
     private HueType currentHueChange = HueType.P;
 
+    #region Managers
     private static UIManager instance;
 
     private ScoreKeeper scoreKeeper;
+
     private Settings settings;
+    #endregion
 
     private delegate void Method();
 
     [SerializeField] private new Camera camera;
+
     [SerializeField] private TMP_Dropdown dropdown;
 
     [SerializeField] private Image dropdownImage;
@@ -36,10 +39,12 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Text currentScoreText;
     [SerializeField] private Text pauseButtonText;
     [SerializeField] private Text highScoreText;
+    [SerializeField] private Text averageScoreText;
     [SerializeField] private Text ticksPerSecondText;
     [SerializeField] private Text hValueText;
     [SerializeField] private Text sValueText;
     [SerializeField] private Text vValueText;
+    [SerializeField] private Text versionText;
     [Space(10)]
 
     [SerializeField] private TextMeshProUGUI dropdownTextGUI;
@@ -49,7 +54,6 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button stopButton;
     [Space(10)]
 
-
     [SerializeField] private Slider ticksPerSecondSlider;
 
     [Header("Sliders")]
@@ -58,8 +62,10 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Slider VSlider;
     [Space(10)]
 
+    [Header("Toggles")]
     [SerializeField] private Toggle beepToggle;
     [SerializeField] private Toggle musicToggle;
+    [Space(10)]
 
     [Header("Panels")]
     [SerializeField] private GameObject startPanel;
@@ -98,14 +104,22 @@ public class UIManager : MonoBehaviour
         }
 
         scoreKeeper = ScoreKeeper.Instance;
-        settings = Settings.Instance;
-
-        camera.backgroundColor = settings.BackgroundColor;
+        settings = Settings.Instance;        
     }
 
     public bool GetBeepToggleValue()
     {
         return beepToggle.isOn;
+    }
+
+    public void ToggleBeep()
+    {
+        settings.UseBeep = beepToggle.isOn;
+    }
+
+    public void ToggleMusic()
+    {
+        settings.UseMusic = musicToggle.isOn;
     }
 
     public void ShowResumeButton()
@@ -123,23 +137,13 @@ public class UIManager : MonoBehaviour
         currentScoreText.text = $"SCORE: {scoreKeeper.CurrentScore}";
     }
 
-    public void ToggleBeep()
-    {
-        settings.UseBeep = beepToggle.isOn;
-    }
-
-    public void ToggleMusic()
-    {
-        settings.UseMusic = musicToggle.isOn;
-    }
-
-
     #region Show Panels
     //Deactivates game panel's current score, pause button, and stop button.
     //Shows start panel's high score, ticks per second, toggle beep, and start button.
     public void ShowStartPanel()
     {
         highScoreText.text = $"HIGH SCORE: {scoreKeeper.GetHighScore((int)settings.TicksPerSecond)}";
+        averageScoreText.text = $"AVERAGE SCORE: {scoreKeeper.GetAvgScore((int)settings.TicksPerSecond)}";
 
         //Loading ticks per second value from settings data.
         ticksPerSecondText.text = $"TICKS PER SECOND: {settings.TicksPerSecond}";
@@ -147,8 +151,10 @@ public class UIManager : MonoBehaviour
 
         //Loading color values to sliders from settings data.
         ChangeColor();
-        
-        
+
+        camera.backgroundColor = settings.BackgroundHue.toRGB;
+        versionText.color = new Color(1f - settings.BackgroundHue.toRGB.r, 1f - settings.BackgroundHue.toRGB.g, 1f - settings.BackgroundHue.toRGB.b);
+
         beepToggle.isOn = settings.UseBeep;
         musicToggle.isOn = settings.UseMusic;
         startPanel.SetActive(true);
@@ -179,14 +185,14 @@ public class UIManager : MonoBehaviour
         settings.TicksPerSecond = value;
         ticksPerSecondText.text = $"TICKS PER SECOND: {value}";
         highScoreText.text = $"HIGH SCORE: {scoreKeeper.GetHighScore((int)value)}";
+        averageScoreText.text = $"AVERAGE SCORE: {scoreKeeper.GetAvgScore((int)value)}";
     }
 
     public void ChangeColor()
     {
-        Hue newHue = settings.PrimaryHue;
-        Color newColor = Color.HSVToRGB(newHue.h, newHue.s, newHue.v);
+        Hue newHue = settings.PrimaryHue;       
         currentHueChange = (HueType)dropdown.value;
-       
+
         switch (currentHueChange)
         {
             case HueType.S:
@@ -203,21 +209,21 @@ public class UIManager : MonoBehaviour
 
             case HueType.B:
                 newHue = settings.BackgroundHue;
+                versionText.color = new Color(1f - newHue.toRGB.r, 1f - newHue.toRGB.g, 1f - newHue.toRGB.b);
                 break;
         }
 
-        dropdownImage.color = newColor;
+        dropdownImage.color = newHue.toRGB;
 
-        HSlider.value = newHue.h;
-        SSlider.value = newHue.s;
-        VSlider.value = newHue.v;
+        HSlider.value = newHue.H;
+        SSlider.value = newHue.S;
+        VSlider.value = newHue.V;
 
         hValueText.text = HSlider.value.ToString(DECIMAL_PLACES);
         sValueText.text = SSlider.value.ToString(DECIMAL_PLACES);
         vValueText.text = VSlider.value.ToString(DECIMAL_PLACES);
 
-        dropdownTextGUI.color = new Color(1f - newColor.r, 1f - newColor.g, 1f - newColor.b);
-
+        dropdownTextGUI.color = new Color(1f - newHue.toRGB.r, 1f - newHue.toRGB.g, 1f - newHue.toRGB.b); 
     }
 
     public void UpdateHueFromSliders()
@@ -226,39 +232,40 @@ public class UIManager : MonoBehaviour
         float s = SSlider.value;
         float v = VSlider.value;
 
-        Color newColor = Color.HSVToRGB(h, s, v);
+        Hue newHue = new Hue(h, s, v);
 
         switch (currentHueChange)
         {
             case HueType.P:
-                settings.PrimaryHue = new Hue(h, s, v);
+                settings.PrimaryHue = newHue;
                 break;
 
             case HueType.S:
-                settings.SecondaryHue = new Hue(h, s, v); 
+                settings.SecondaryHue = newHue; 
                 break;
 
             case HueType.F:
-                settings.FruitHue = new Hue(h, s, v);
+                settings.FruitHue = newHue;
                 break;
 
             case HueType.G:
-                settings.GridHue = new Hue(h, s, v);
+                settings.GridHue = newHue;
                 break;
 
             case HueType.B:
-                settings.BackgroundHue = new Hue(h, s, v);
-                camera.backgroundColor = newColor;
+                settings.BackgroundHue = newHue;
+                camera.backgroundColor = newHue.toRGB;
+                versionText.color = new Color(1f - newHue.toRGB.r, 1f - newHue.toRGB.g, 1f - newHue.toRGB.b);
                 break;
         }
 
-        dropdownImage.color = newColor;
+        dropdownImage.color = newHue.toRGB;
 
         hValueText.text = HSlider.value.ToString(DECIMAL_PLACES);
         sValueText.text = SSlider.value.ToString(DECIMAL_PLACES);
         vValueText.text = VSlider.value.ToString(DECIMAL_PLACES);
 
-        dropdownTextGUI.color = new Color(1f - newColor.r, 1f - newColor.g, 1f - newColor.b);
+        dropdownTextGUI.color = new Color(1f - newHue.toRGB.r, 1f - newHue.toRGB.g, 1f - newHue.toRGB.b);
     }
     #endregion
 
@@ -334,30 +341,6 @@ public class UIManager : MonoBehaviour
     {
         slider.value -= increment;
         method();
-    }
-    #endregion
-
-    #region Update Color Driver
-    private void UpdateColorDriver(Slider slider, HueType huetype)
-    {
-        float value = slider.value;
-        slider.gameObject.transform.Find("Fill Area").Find("Fill").GetComponent<Image>().color = Color.HSVToRGB(value, 1f, 1f);
-        slider.gameObject.transform.Find("Background").GetComponent<Image>().color = Color.HSVToRGB(value, 1f, 1f);
-
-        switch(huetype)
-        {
-            case HueType.P:
-                //settings.PrimaryHue = value;
-                break;
-
-            case HueType.S:
-                //settings.SecondaryHue = value;
-                break;
-
-            case HueType.F:
-               // settings.FruitHue = value;
-                break;
-        }
     }
     #endregion
 }

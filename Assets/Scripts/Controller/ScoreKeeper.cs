@@ -9,7 +9,7 @@ public class ScoreKeeper
 
     private int currentScore;
 
-    private Dictionary<int, int> highScores;
+    private Dictionary<int, List<int>> allScores;
 
     public int CurrentScore => currentScore;
 
@@ -28,19 +28,44 @@ public class ScoreKeeper
 
     private ScoreKeeper()
     {
-        currentScore = 0;
-        LoadHighScore();
+        ResetCurrentScore();
+        LoadScores();
     }
    
     public int GetHighScore(int ticks)
     {
         //Return 0 if highscore for tick not recorded.
-        if (!highScores.ContainsKey(ticks))
+        if (!allScores.ContainsKey(ticks))
         {
             return 0;
         }
 
-        return highScores[ticks];
+        int highScore = 0;
+
+        foreach(int score in allScores[ticks])
+        {
+            if (score > highScore)
+                highScore = score;
+        }
+
+        return highScore;
+    }
+
+    public int GetAvgScore(int ticks)
+    {
+        if (!allScores.ContainsKey(ticks) || allScores[ticks].Count <= 0)
+        {
+            return 0;
+        }
+
+        float sum = 0f;
+
+        foreach (int score in allScores[ticks])
+        {
+            sum += score;
+        }
+
+        return (int)(sum / allScores[ticks].Count);
     }
 
     public void IncrementCurrentScore()
@@ -53,52 +78,73 @@ public class ScoreKeeper
         currentScore = 0;
     }
 
-    public void UpdateHighScore(int ticks)
+    public void UpdateScores(int ticks)
     {
-        //Record highscore of tick if not recorded.
-        if (!highScores.ContainsKey(ticks))
-        {
-            highScores.Add(ticks, currentScore);
-            return;
-        }
+        if (!allScores.ContainsKey(ticks))
+            allScores.Add(ticks, new List<int>());
 
-        //Update highscore of tick if recorded.
-        if (currentScore > highScores[ticks])
-        {
-            highScores[ticks] = currentScore;
-        }
+        allScores[ticks].Add(currentScore);
     }
 
-    public void SaveHighScore()
+    public void SaveScores()
     {
         SaveData saveData = new SaveData();
-        saveData.ticks = new List<int>(highScores.Keys);
-        saveData.scores = new List<int>(highScores.Values);
+        saveData.scrData = new List<ScoreData>();
 
-        SaveLoader.SaveData(saveData, SAVE_FILE_NAME);
-    }
-
-    public void LoadHighScore()
-    {
-        highScores = new Dictionary<int, int>();
-        SaveData saveData = SaveLoader.LoadData<SaveData>(SAVE_FILE_NAME);
-        
-        for (int i = 0; i < saveData.ticks.Count; i++)
+        foreach(int tick in allScores.Keys)
         {
-            highScores.Add(saveData.ticks[i], saveData.scores[i]);
-        }      
+            foreach(int score in allScores[tick])
+            {
+                saveData.scrData.Add(new ScoreData(tick, score));
+            }
+        }
+ 
+        SaveLoader.SaveData(saveData, SAVE_FILE_NAME);
+    }     
+    
+
+    public void LoadScores()
+    {
+        allScores = new Dictionary<int, List<int>>();
+
+        SaveData saveData = SaveLoader.LoadData<SaveData>(SAVE_FILE_NAME);
+
+        foreach(ScoreData scoreData in saveData.scrData)
+        {
+            if (!allScores.ContainsKey(scoreData.tick))
+                allScores.Add(scoreData.tick, new List<int>());
+
+            allScores[scoreData.tick].Add(scoreData.score);
+        }
     }
 
     [Serializable]
     private class SaveData
     {
-        public List<int> ticks;
-        public List<int> scores;
+        public List<ScoreData> scrData;
 
         public SaveData()
         {
-            ticks = new List<int>();
-            scores = new List<int>();
+            scrData = new List<ScoreData>();
+        }
+    }
+
+    [Serializable]
+    private class ScoreData
+    {
+        public int tick;
+        public int score;
+
+        public ScoreData()
+        {
+            tick = 0;
+            score = 0;
+        }
+
+        public ScoreData(int t, int s)
+        {
+            tick = t;
+            score = s;
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using UnityEngine;
 
 public class Settings
 {
@@ -18,12 +17,7 @@ public class Settings
     private Hue gridHue;
     private Hue backgroundHue;
 
-    private Color primaryColor;
-    private Color secondaryColor;
-    private Color fruitColor;
-    private Color gridColor;
-    private Color backgroundColor;
-
+    #region Properties
     public bool UseBeep
     {
         get
@@ -73,7 +67,6 @@ public class Settings
         set
         {
             primaryHue = value;
-            primaryColor = Color.HSVToRGB(primaryHue.h, primaryHue.s, primaryHue.v);
         }
     }
    
@@ -87,7 +80,6 @@ public class Settings
         set
         {
             secondaryHue = value;
-            secondaryColor = Color.HSVToRGB(secondaryHue.h, secondaryHue.s, secondaryHue.v);
         }
     }
 
@@ -101,7 +93,6 @@ public class Settings
         set
         {
             fruitHue = value;
-            fruitColor = Color.HSVToRGB(fruitHue.h, fruitHue.s, fruitHue.v);
         }
     }
 
@@ -115,7 +106,6 @@ public class Settings
         set
         {
             gridHue = value;
-            gridColor = Color.HSVToRGB(gridHue.h, gridHue.s, gridHue.v);
         }
     }
 
@@ -129,50 +119,10 @@ public class Settings
         set
         {
             backgroundHue = value;
-            backgroundColor = Color.HSVToRGB(backgroundHue.h, backgroundHue.s, backgroundHue.v);
         }
     }
+    #endregion
 
-    public Color PrimaryColor
-    {
-        get
-        {
-            return primaryColor;
-        }
-    }
-
-    public Color SecondaryColor
-    {
-        get
-        {
-            return secondaryColor;
-        }
-    }
-
-    public Color FruitColor
-    {
-        get
-        {
-            return fruitColor;
-        }
-    }
-
-    public Color GridColor
-    {
-        get
-        {
-            return gridColor;
-        }
-    }
-
-    public Color BackgroundColor
-    {
-        get
-        {
-            return backgroundColor;
-        }
-    }
-  
     public static Settings Instance
     {
         get
@@ -192,21 +142,9 @@ public class Settings
     }
 
     public void SaveSettings()
-    {
-        SettingsData saveData = new SettingsData();
-
-        saveData.tps = ticksPerSecond;
-
-        saveData.uB = useBeep;
-        saveData.uM = useMusic;
-
-        saveData.pHue = primaryHue;
-        saveData.sHue = secondaryHue;
-        saveData.fHue = fruitHue;
-        saveData.gHue = gridHue;
-        saveData.bHue = backgroundHue;
-
-        SaveLoader.SaveData(saveData, SAVE_FILE_NAME);
+    {   
+        SaveLoader.SaveData(new SettingsData(useBeep, useMusic, ticksPerSecond, 
+            primaryHue, secondaryHue, fruitHue, gridHue, backgroundHue), SAVE_FILE_NAME);
     }
 
     public void LoadSettings()
@@ -218,20 +156,20 @@ public class Settings
         useBeep = saveData.uB;
         useMusic = saveData.uM;
 
-        PrimaryHue = saveData.pHue;
-        SecondaryHue = saveData.sHue;
-        FruitHue = saveData.fHue;
-        GridHue = saveData.gHue;
-        BackgroundHue = saveData.bHue;
+        PrimaryHue = new Hue(saveData.pHue);
+        SecondaryHue = new Hue(saveData.sHue);
+        FruitHue = new Hue(saveData.fHue);
+        GridHue = new Hue(saveData.gHue);
+        BackgroundHue = new Hue(saveData.bHue);
     }
 
     [Serializable]
     private class SettingsData
-    {
-        public float tps;
-       
+    {      
         public bool uB;
         public bool uM;
+
+        public float tps;
 
         public Hue pHue;
         public Hue sHue;
@@ -240,15 +178,31 @@ public class Settings
         public Hue bHue;
 
         public SettingsData()
-        {
-            tps = 10f;
+        {            
             uB = true;
             uM = true;
+
+            tps = 10f;
+
             pHue = new Hue(120f/360f, 1f, 1f);
             sHue = new Hue(60f/360f, 1f, 1f);
             fHue = new Hue(0f, 1f, 1f);
-            gHue = new Hue(0f, 0f, 60f/100f);
-            bHue = new Hue(0f, 0f, 0f);
+            gHue = new Hue(0f, 0f, 0f);
+            bHue = new Hue(0f, 0f, 60f / 100f);
+        }
+
+        public SettingsData(bool uB, bool uM, float tps, Hue pHue, Hue sHue, Hue fHue, Hue gHue, Hue bHue)
+        {
+            this.uB = uB;
+            this.uM = uM;
+
+            this.tps = tps;
+
+            this.pHue = pHue;
+            this.sHue = sHue;
+            this.fHue = fHue;
+            this.gHue = gHue;
+            this.bHue = bHue;
         }
     }
 }

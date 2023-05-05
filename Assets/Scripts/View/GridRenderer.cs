@@ -77,7 +77,7 @@ public class GridRenderer : MonoBehaviour
         float xOffset = 0f;
         float yOffset = 0f;
 
-        Color gridColor = Color.HSVToRGB(settings.GridHue.h, settings.GridHue.s, settings.GridHue.v);
+        Color gridColor = settings.GridHue.toRGB;
 
         //Calculating offset of the cells based on the shortest side of the screen.
         if (squareLength == widthRatio)
@@ -127,7 +127,7 @@ public class GridRenderer : MonoBehaviour
         //Resetting each cell color to default.
         foreach (GameObject cell in changedCells)
         {
-            cell.GetComponent<Image>().color = settings.GridColor;
+            cell.GetComponent<Image>().color = settings.GridHue.toRGB;
         }
 
         changedCells.Clear(); 
@@ -146,7 +146,7 @@ public class GridRenderer : MonoBehaviour
         foreach (GameObject cell in grid)
         {
 
-            cell.GetComponent<Image>().color = settings.GridColor;
+            cell.GetComponent<Image>().color = settings.GridHue.toRGB;
         }
 
         changedCells.Clear();
@@ -186,7 +186,7 @@ public class GridRenderer : MonoBehaviour
 
         cell.GetComponent<Image>().color = color;
 
-        if (color.Equals(settings.GridColor))
+        if (color.Equals(settings.GridHue.toRGB))
         {
             changedCells.Remove(cell);
 
@@ -202,35 +202,35 @@ public class GridRenderer : MonoBehaviour
         }     
     }
 
-    public void FadeCells()
+    public void HideCells()
     {
         if (!gridSpawned)
         {
             return;
         }
 
-        //Fading each cell.
+        //Hide each cell.
         foreach (GameObject cell in grid)
         {
-            Color cellColor = cell.GetComponent<Image>().color;
-            Color fadedColor = new Color(cellColor.r, cellColor.g, cellColor.b, cellColorA);
-            cell.GetComponent<Image>().color = fadedColor;
+            Image cellImage = cell.GetComponent<Image>();
+            Color cellColor = cellImage.color;
+            cellImage.color = new Color(cellColor.r, cellColor.g, cellColor.b, 0f);
         }
     }
 
-    public void UnFadeCells()
+    public void ShowCells()
     {
         if (!gridSpawned)
         {
             return;
         }
 
-        //Unfading each cell.
+        //Show each cell.
         foreach (GameObject cell in grid)
         {
-            Color cellColor = cell.GetComponent<Image>().color;
-            Color unfadedColor = new Color(cellColor.r, cellColor.g, cellColor.b, 1f);
-            cell.GetComponent<Image>().color = unfadedColor;
+            Image cellImage = cell.GetComponent<Image>();
+            Color cellColor = cellImage.color;
+            cellImage.color = new Color(cellColor.r, cellColor.g, cellColor.b, 1f); 
         }
     }
 }

@@ -11,7 +11,7 @@ public class ScreenInput
         None
     };
 
-    private static float sqrtTwoDivTwo = (Mathf.Sqrt(2f) / 2f);
+    private static float sqrtTwoDivTwo = Mathf.Sqrt(2f) / 2f;
 
     public static Swipe GetSwipe()
     {
