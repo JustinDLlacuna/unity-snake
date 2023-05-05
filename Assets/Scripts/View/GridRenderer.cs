@@ -11,12 +11,11 @@ public class GridRenderer : MonoBehaviour
     private GameObject[,] grid;
     private HashSet<GameObject> changedCells;
 
+    private Settings settings;
+
     [Range(0, 1f)]
     [SerializeField] private float cellColorA;
     [SerializeField] private RectTransform parentRect;
-    [SerializeField] private Color defaultColor;
-
-    public Color DefaultColor => defaultColor;
 
     public static GridRenderer Instance
     {
@@ -45,7 +44,7 @@ public class GridRenderer : MonoBehaviour
             instance = this;
             DontDestroyOnLoad(gameObject);
 
-	    gridSpawned = false;
+	        gridSpawned = false;
             cellsChanged = false;
             grid = new GameObject[GridConstants.COLS, GridConstants.ROWS];
             changedCells = new HashSet<GameObject>();
@@ -53,7 +52,9 @@ public class GridRenderer : MonoBehaviour
         else
         {
             Destroy(gameObject);
-        }      
+        }
+
+        settings = Settings.Instance;
     }
 
     public void DrawGrid()
@@ -75,7 +76,9 @@ public class GridRenderer : MonoBehaviour
         float halfSquareLength = squareLength / 2f;
         float xOffset = 0f;
         float yOffset = 0f;
-    
+
+        Color gridColor = Color.HSVToRGB(settings.GridHue.h, settings.GridHue.s, settings.GridHue.v);
+
         //Calculating offset of the cells based on the shortest side of the screen.
         if (squareLength == widthRatio)
         {
@@ -97,7 +100,7 @@ public class GridRenderer : MonoBehaviour
                 cell.transform.localScale = Vector3.one;
 
                 Image image = cell.AddComponent(typeof(Image)) as Image;
-                image.color = defaultColor;
+                image.color = gridColor;
 
                 RectTransform rectTransform = image.rectTransform;
                 rectTransform.anchorMin = Vector2.zero;
@@ -114,7 +117,7 @@ public class GridRenderer : MonoBehaviour
         gridSpawned = true;
     }
 
-    public void ResetGrid()
+    public void RefreshGrid()
     {
         if (!gridSpawned || !cellsChanged)
         {
@@ -124,11 +127,29 @@ public class GridRenderer : MonoBehaviour
         //Resetting each cell color to default.
         foreach (GameObject cell in changedCells)
         {
-            cell.GetComponent<Image>().color = defaultColor;
+            cell.GetComponent<Image>().color = settings.GridColor;
         }
 
         changedCells.Clear(); 
 
+        cellsChanged = false;
+    }
+
+    public void ResetGrid()
+    {
+        if (!gridSpawned)
+        {
+            return;
+        }
+
+        //Resetting each cell color to default.
+        foreach (GameObject cell in grid)
+        {
+
+            cell.GetComponent<Image>().color = settings.GridColor;
+        }
+
+        changedCells.Clear();
         cellsChanged = false;
     }
 
@@ -165,7 +186,7 @@ public class GridRenderer : MonoBehaviour
 
         cell.GetComponent<Image>().color = color;
 
-        if (color.Equals(defaultColor))
+        if (color.Equals(settings.GridColor))
         {
             changedCells.Remove(cell);
 

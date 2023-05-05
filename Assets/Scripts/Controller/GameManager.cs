@@ -18,10 +18,6 @@ public class GameManager : MonoBehaviour
     private ScoreKeeper scoreKeeper;
     private Settings settings;
 
-    private Color snakeColorPrimary;
-    private Color snakeColorSecondary;
-    private Color fruitColor;
-
     private void Awake()
     {
         if (instance == null)
@@ -62,16 +58,8 @@ public class GameManager : MonoBehaviour
     {
         uiManager = UIManager.Instance;
 
-        snakeColorPrimary = Color.HSVToRGB(settings.PrimaryColor, 1f, 1f);
-        snakeColorSecondary = Color.HSVToRGB(settings.SecondaryColor, 1f, 1f);
-        fruitColor = Color.HSVToRGB(settings.FruitColor, 1f, 1f);
-
-        SpawnFruit();
-
         gridRenderer = GridRenderer.Instance;
         gridRenderer.DrawGrid();
-        gridRenderer.UpdateCell(GridConstants.START_X, GridConstants.START_Y, snakeColorPrimary);
-        gridRenderer.UpdateCell(fruitCell.X, fruitCell.Y, snakeColorSecondary); ;
         gridRenderer.FadeCells();
 
         StopGame();
@@ -89,13 +77,14 @@ public class GameManager : MonoBehaviour
                 //Move snake based on swipe this frame. 
                 bool didMove = MoveSnake(canMoveSnake ? swipeThisFrame : previousSwipe);
 
-                RefreshGrid();
+                if(didMove)
+                    RefreshGrid();
 
                 //If snake did not move this frame, kill snake and fade grid.
                 if (!didMove)
                 {
-                    KillSnake();
-                    gridRenderer.FadeCells();
+                    MusicPlayer.Instance.PlayGameOver();
+                    return;
                 }
 
                 currentTime = Time.time + (1f / ticksPerSecond);
@@ -142,23 +131,22 @@ public class GameManager : MonoBehaviour
     public void StartGame()
     {
         ticksPerSecond = settings.TicksPerSecond;
-        snakeColorPrimary = Color.HSVToRGB(settings.PrimaryColor, 1f, 1f);
-        snakeColorSecondary = Color.HSVToRGB(settings.SecondaryColor, 1f, 1f);
-        fruitColor = Color.HSVToRGB(settings.FruitColor, 1f, 1f);
 
-        RefreshGrid();
+        gridRenderer.ResetGrid();
         scoreKeeper.ResetCurrentScore();
         uiManager.ShowGamePanel();
         gridRenderer.UnFadeCells();
-        ResumeGame();       
-    }
 
-    //Prematurely stop game. Kills snake and fades grid.
-    public void PreStopGame()
-    {
-        StopGame();
-        KillSnake();
-        gridRenderer.FadeCells();
+        Cell startCell = grid[GridConstants.START_X, GridConstants.START_Y];
+        snake.AddFirst(startCell);
+        startCell.State = Cell.CellState.Snake;
+
+        SpawnFruit();
+        RefreshGrid();
+        ResumeGame();
+
+        if(settings.UseMusic)
+            MusicPlayer.Instance.PlayMusic();
     }
 
     //Snake can move if swipe is not None, is 1 snake, or next cell is not 2nd snake body.
@@ -211,7 +199,7 @@ public class GameManager : MonoBehaviour
 
             if (uiManager.GetBeepToggleValue())
             {
-                BeepPlayer.Instance.Play();
+                MusicPlayer.Instance.PlayEatFruit();
             }            
         }
 
@@ -225,14 +213,14 @@ public class GameManager : MonoBehaviour
         switch (state) 
         {
             case Cell.CellState.Snake:
-                return isSnakeColorPrimary ? snakeColorPrimary : snakeColorSecondary;
+                return isSnakeColorPrimary ? settings.PrimaryColor : settings.SecondaryColor;
 
             case Cell.CellState.Fruit:
-                return fruitColor;
+                return settings.FruitColor;
 
             case Cell.CellState.Empty:
             default:
-                return gridRenderer.DefaultColor;
+                return settings.GridColor;
         }
     }
 
@@ -260,22 +248,13 @@ public class GameManager : MonoBehaviour
 
     private void KillSnake()
     {
-        Cell startCell = grid[GridConstants.START_X, GridConstants.START_Y];
-        
         //Settings each cell in snake to empty.
         foreach (Cell cell in snake)
         {
             cell.State = Cell.CellState.Empty;
         }
 
-        //Clears snake, and replaces head.
-        snake.Clear();
-        snake.AddFirst(startCell);
-        startCell.State = Cell.CellState.Snake;
-
-        SpawnFruit();
-
-        previousSwipe = ScreenInput.Swipe.Up;
+        snake.Clear();       
     }
 
     private void SpawnFruit()
@@ -323,11 +302,20 @@ public class GameManager : MonoBehaviour
     }
 
     //Pauses game, updates high score of current tick, and show start panel.
-    private void StopGame()
+    public void StopGame()
     {
         PauseGame();
+        KillSnake();
+
+        if(fruitCell != null)
+            fruitCell.State = Cell.CellState.Empty;
+
+        gridRenderer.ResetGrid();
+        gridRenderer.FadeCells();
+        MusicPlayer.Instance.StopMusic();
         scoreKeeper.UpdateHighScore((int)ticksPerSecond);
         uiManager.ShowStartPanel();
+        previousSwipe = ScreenInput.Swipe.Up;
     }
 
     private void RefreshGrid()
@@ -335,7 +323,7 @@ public class GameManager : MonoBehaviour
         float count = 0f;
 
         //Each cell is now default color.
-        gridRenderer.ResetGrid();
+        gridRenderer.RefreshGrid();
 
         isSnakeColorPrimary = true;
  
@@ -349,7 +337,8 @@ public class GameManager : MonoBehaviour
         }
 
         //Redraws fruit.
-        gridRenderer.UpdateCell(fruitCell.X, fruitCell.Y, GetColor(fruitCell.State));
+        if(fruitCell != null)
+            gridRenderer.UpdateCell(fruitCell.X, fruitCell.Y, settings.FruitColor);
     }
 
     //Updates high score of current tick, and saves it.
