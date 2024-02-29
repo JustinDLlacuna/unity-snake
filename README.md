@@ -1,7 +1,6 @@
 # Snake
 
-A simple snake game that runs on Android.
-
+An implementation of Snake using the Unity Engine.
 Features:
 
 -HSV slider to customize snake, fruit, and background colors.
